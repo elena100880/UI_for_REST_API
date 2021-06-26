@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %} ProductInStore {% endblock %}
+
+{% block stylesheets1 %} <link rel="stylesheet" href="/css/products_in_store/products_all.css"> {% endblock %}
+
+   
+{% block logo %} Products in Store {% endblock %}
+
+{% block content %}
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Name</th>
+                    <th>Amount</th>
+                    <th>actions</th>
+                </tr>
+            </thead>
+            <tbody>
+
+            {#    {% for product_in_store in product_in_stores %}
+                    <tr>
+                        <td>{{ product_in_store.id }}</td>
+                        <td>{{ product_in_store.name }}</td>
+                        <td>{{ product_in_store.amount }}</td>
+                        <td>
+                            <a href="{{ path('product_in_store_show', {'id': product_in_store.id}) }}">show</a>
+                            <a href="{{ path('product_in_store_edit', {'id': product_in_store.id}) }}">edit</a>
+                        </td>
+                    </tr>  
+
+                {% else %}
+                    <tr>
+                        <td colspan="4">no records found</td>
+                    </tr>
+                {% endfor %}                #}
+
+            </tbody>
+        </table>
+
+        <div class = 'links'>    
+            <a href="{{ path('product_in_store_new') }}">Create new >>>></a>
+        </div>
+
+{% endblock %}
+

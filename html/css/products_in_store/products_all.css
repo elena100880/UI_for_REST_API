@@ -1,0 +1,17 @@
+table {
+	margin-bottom: 10px;
+	border-collapse: collapse;
+}
+td, th {
+	border: 1px solid green;
+	border-collapse: collapse;
+	padding: 5px;
+}
+.links {
+	font-size: 30px;
+	text-align: right;
+}
+.links a {
+	text-decoration: none;
+	color:crimson;
+}
