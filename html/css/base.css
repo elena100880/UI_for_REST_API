@@ -22,3 +22,31 @@ body {
 	color: black;
 	margin-top:10px;
 }
+button {
+	color: black;
+	margin: 20px 10px 20px 10px;
+	padding: 10px;
+	width: 100px;
+	height: 55px;
+	font-family: 'Open Sans', sans-serif;
+	font-weight: bold;
+	background-color: mediumSeaGreen;
+	border: 2px solid black;
+	text-transform: capitalize;
+}
+button a {
+	text-decoration: none;
+	color: black;
+}
+label {
+	color: green;
+	padding: 5px;
+	margin: 0;
+	display: inline-block;
+	width: 150px;
+	box-sizing: content-box;
+}
+.links a {
+	font-size: 20px;
+	color: blue;
+}

@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %} New ProductInStore {% endblock %}
+
+{% block stylesheets1 %} <link rel="stylesheet" href="/css/products_in_store/products_add.css"> {% endblock %}
+
+   
+{% block logo %} New Product in Store {% endblock %}
+
+{% block content %}
+
+        {{form_start(form)}}
+
+            {{form_row(form.name)}}
+            {{form_row(form.amount)}}
+            
+            <div class = 'form'> {{form_row(form.save)}} </div>
+        {#    <div class = 'form'> <button type="button"><a href="{{ path('products_all') }}">Show all items</a></button> </div>   #}
+            <div style = 'clear:both'></div>
+
+        {{form_end(form)}}
+
+        <br><span style="color: fuchsia; font-weight: bold" >Dev info:</span><br>
+        {{developerMessage}}<br><br>
+     
+        <div class = 'links'>
+            <a href="{{ path('products_all') }}"> Back to list of Products in Store >>>> </a>
+        </div>
+      
+{% endblock %}
+

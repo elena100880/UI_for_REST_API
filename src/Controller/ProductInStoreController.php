@@ -13,6 +13,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 
 class ProductInStoreController extends AbstractController
@@ -41,41 +43,89 @@ class ProductInStoreController extends AbstractController
                                     ->add('send', SubmitType::class, ['label'=>'Show chosen'])
                                     ->getForm();
         $form->handleRequest($request);
-
-        $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products' );
-        
+      
         if ($form->isSubmitted() ) 
         {
             $dataFromForm = $form->getData();
             $itemsToSearch = $dataFromForm['items'];
          
             if ($itemsToSearch == 0) $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products?amount=0' );
-            
             if ($itemsToSearch == 5) $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products?amount=5' );
+            if ($itemsToSearch == 1) $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products?amount=1' );
         }
-        $dataFromAPI = json_decode($response->getContent(), true);
-        $аrrayOfProducts = $dataFromAPI['data'];
+        else $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products' );
         
+        $jsonDataFromAPI = $response->getContent(false);
+        $arrayDataFromAPI = json_decode($jsonDataFromAPI, true); 
+
+        $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response);
+       
+        if ($response->getStatusCode() == 200) {
+            $аrrayOfProducts = $arrayDataFromAPI['data'];   /** @todo convert decoded data into array of ProdutInStore objects */
+            $userMessage = null;
+        }
+        else {
+            $аrrayOfProducts = [];
+            $userMessage = "DB is not available. Please, try again later.";
+        }
+                        
         $contents = $this->renderView('product_in_store/products_all.html.twig', [
             'ip' => ProductInStoreController::IP,
             'products' => $аrrayOfProducts,
             'form' => $form->createView(),
+            'developerMessage' => $developerMessage,
+            'userMessage' => $userMessage
         ]);
         return new Response($contents);
     }
 
     public function product_add(Request $request): Response
     {
+        $form = $this->createFormBuilder()           /** @todo make ProductInStore object TypeForm */
+                                    ->add('name', TextType::class, ['label' => 'Name of Product:',
+                                                                    'required' => false])
+                                    ->add('amount', TextType::class, ['label' => 'Amount in Store:',
+                                                                        'data' => 0])
+                                    ->add('save', SubmitType::class, ['label'=>'Add the item'])
+                                    ->getForm();
+        $form->handleRequest($request);
+    
+        $developerMessage = null;
+        $userMessage = null;
+        if ($form->isSubmitted()) {
 
-
-        
-        
-        $contents = $this->renderView('product_in_store/products_all.html.twig', [
-            'ip' => ProductInStoreController::IP,
+            $dataFromForm = $form->getData();
+            $name = $dataFromForm['name'];               
+            $amount = intval($dataFromForm['amount']);
             
-            //'form' => $form->createView(),
-        ]);
-        return new Response($contents);
+            /** 
+             * @todo some validation of user's input data: name and amount 
+             * if not Valid return some $userMessage
+             */
+
+            $jsonToAddProduct = json_encode(['name' => $name, 'amount' => $amount]);  /** @todo encode from object ProductInStore */
+            $response = $this->client->request( 'POST',  'http://'.ProductInStoreController::IP.'/products', ['body' => $jsonToAddProduct]);
+            $jsonDataFromAPI = $response->getContent(false);
+            $arrayDataFromAPI = json_decode($jsonDataFromAPI, true);
+
+            $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response);
+            
+            if ($response->getStatusCode() == 200) {
+                $this->addFlash('succes','Product was seccesfully added!!');
+                return $this->redirectToRoute('products_all');
+            }
+            else $userMessage = "DB is not available. Please, try again later.";
+        }
+        
+                
+            $contents = $this->renderView('product_in_store/product_add.html.twig', [
+                'ip' => ProductInStoreController::IP,
+                'form' => $form->createView(),
+                'developerMessage' => $developerMessage,
+                'userMessage' => $userMessage,
+            ]);
+            return new Response($contents);
+        
     }
 
     #[Route('/{id}', name: 'product_in_store_show', methods: ['GET'])]
@@ -114,5 +164,12 @@ class ProductInStoreController extends AbstractController
         }
 
         return $this->redirectToRoute('product_in_store_index');
+    }
+
+    public function get_dev_info($arrayDataFromAPI, $response)
+    {
+        $message = $arrayDataFromAPI['message'] ?? "-";
+        $code = $response->getStatusCode();
+        return $developerMessage = "message: $message, code: $code";
     }
 }

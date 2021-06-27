@@ -9,6 +9,11 @@
 
 {% block content %}
 
+        {% for message in app.flashes('succes') %}
+            <div class='alert alert succes'>
+                <span style='color:aqua; font-weight: bold; font-size: 20px'>{{message}}</span>
+            </div>
+        {% endfor %}
 
         {{form_start(form)}}
 
@@ -51,15 +56,14 @@
             </tbody>
         </table>
 
+        <span style="color: red; font-weight: bold" >{{userMessage}}<br><br>
+
+        <br><span style="color:fuchsia; font-weight: bold" >Dev info:<br>
+        {{developerMessage}}</span><br><br>
+
         <div class = 'links'>
             <a href="{{ path('product_add') }}"> Add new product >>>> </a>
         </div> 
-
-        <div class = 'links'>
-            
-
-        {#    <button type="button" id="addbutton"><a class="button" href="{{ path('product_add') }}">Add new product</a></button>  #}
-        </div>
 
 {% endblock %}
 
