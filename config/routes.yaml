@@ -1,7 +1,11 @@
-products_get:
+products_all:
     path: /products/all
     controller: App\Controller\ProductInStoreController::products_all
-    methods: GET
+
+product_add:
+    path: /product/add
+    controller: App\Controller\ProductInStoreController::product_add
+
 
 #product_delete:
 #    path: /products/{id}
@@ -13,7 +17,4 @@ products_get:
 #    controller: App\Controller\ProductInStoreController::product_edit
 #    methods: PATCH
 
-#product_add:
-#    path: /products
-#    controller: App\Controller\ProductInStoreController::product_add
-#    methods: POST
+

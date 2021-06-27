@@ -2,9 +2,9 @@
 
 namespace App\Controller;
 
-use App\Entity\ProductInStore;
-use App\Form\ProductInStoreType;
-use App\Repository\ProductInStoreRepository;
+#use App\Entity\ProductInStore;
+#use App\Form\ProductInStoreType;
+#use App\Repository\ProductInStoreRepository;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -12,9 +12,14 @@ use Symfony\Component\HttpFoundation\Response;
 
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+
 class ProductInStoreController extends AbstractController
 {
     private $client;
+
+    private const IP =  "172.17.0.3"; //access to API container
 
     public function __construct(HttpClientInterface $client)
     {
@@ -22,45 +27,55 @@ class ProductInStoreController extends AbstractController
     }
     
     public function products_all (Request $request) : Response
-    {
-        $response = $this->client->request(
-            'GET',
-            'https://localhost:81/products'
-        );
-        $content = $response->getContent();
+    {   
+        $form = $this->createFormBuilder()
+                                    ->setMethod('GET')
+                                    ->add ('items', ChoiceType::class, [
+                                                                        'label' => ' ',
+                                                                        'expanded' =>true,
+                                                                        'choices' => [  'all items' => 1,
+                                                                                        'zero amount items' => 0,
+                                                                                        'more than five items' => 5],
+                                                                        'data' => 1,
+                                                                                    ])
+                                    ->add('send', SubmitType::class, ['label'=>'Show chosen'])
+                                    ->getForm();
+        $form->handleRequest($request);
+
+        $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products' );
         
-        
-        
-        
-        
+        if ($form->isSubmitted() ) 
+        {
+            $dataFromForm = $form->getData();
+            $itemsToSearch = $dataFromForm['items'];
+         
+            if ($itemsToSearch == 0) $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products?amount=0' );
+            
+            if ($itemsToSearch == 5) $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products?amount=5' );
+        }
+        $dataFromAPI = json_decode($response->getContent(), true);
+        $аrrayOfProducts = $dataFromAPI['data'];
         
         $contents = $this->renderView('product_in_store/products_all.html.twig', [
-
-            //'product_in_stores' => $productInStoreRepository->findAll(),
-
+            'ip' => ProductInStoreController::IP,
+            'products' => $аrrayOfProducts,
+            'form' => $form->createView(),
         ]);
         return new Response($contents);
     }
 
-    #[Route('/new', name: 'product_in_store_new', methods: ['GET', 'POST'])]
-    public function new(Request $request): Response
+    public function product_add(Request $request): Response
     {
-        $productInStore = new ProductInStore();
-        $form = $this->createForm(ProductInStoreType::class, $productInStore);
-        $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager = $this->getDoctrine()->getManager();
-            $entityManager->persist($productInStore);
-            $entityManager->flush();
 
-            return $this->redirectToRoute('product_in_store_index');
-        }
-
-        return $this->render('product_in_store/new.html.twig', [
-            'product_in_store' => $productInStore,
-            'form' => $form->createView(),
+        
+        
+        $contents = $this->renderView('product_in_store/products_all.html.twig', [
+            'ip' => ProductInStoreController::IP,
+            
+            //'form' => $form->createView(),
         ]);
+        return new Response($contents);
     }
 
     #[Route('/{id}', name: 'product_in_store_show', methods: ['GET'])]

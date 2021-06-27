@@ -7,11 +7,37 @@ td, th {
 	border-collapse: collapse;
 	padding: 5px;
 }
-.links {
-	font-size: 30px;
-	text-align: right;
+button a {
+	text-decoration: none;
+	color: black;
 }
 .links a {
-	text-decoration: none;
-	color:crimson;
+	font-size: 20px;
+	color: blue;
+}
+button {
+	color: black;
+	margin: 20px 10px 20px 10px;
+	padding: 10px;
+	width: 100px;
+	height: 55px;
+	font-family: 'Open Sans', sans-serif;
+	font-weight: bold;
+	background-color: mediumSeaGreen;
+	border: 2px solid black;
+	text-transform: capitalize;
+}
+.form {
+	float:left;
+}
+input[type='radio']{
+	width: 20px;
+}
+label {
+	color: green;
+	padding: 5px;
+	margin: 0;
+	display: inline-block;
+	width: 150px;
+	box-sizing: content-box;
 }

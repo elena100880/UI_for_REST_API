@@ -9,25 +9,36 @@
 
 {% block content %}
 
+
+        {{form_start(form)}}
+
+            {{form_row(form.items)}}
+            
+            <div class = 'form'> {{form_row(form.send)}} </div>
+            <div class = 'form'> <button type="button"><a href="{{ path('products_all') }}">Show all items</a></button> </div>   
+            <div style = 'clear:both'></div>
+
+        {{form_end(form)}}
+
         <table class="table">
             <thead>
                 <tr>
                     <th>Id</th>
                     <th>Name</th>
                     <th>Amount</th>
-                    <th>actions</th>
+                    <th>actions >></th>
                 </tr>
             </thead>
             <tbody>
 
-            {#    {% for product_in_store in product_in_stores %}
+                {% for product in products %}
                     <tr>
-                        <td>{{ product_in_store.id }}</td>
-                        <td>{{ product_in_store.name }}</td>
-                        <td>{{ product_in_store.amount }}</td>
+                        <td>{{ product.id }}</td>
+                        <td>{{ product.name }}</td>
+                        <td>{{ product.amount }}</td>
                         <td>
-                            <a href="{{ path('product_in_store_show', {'id': product_in_store.id}) }}">show</a>
-                            <a href="{{ path('product_in_store_edit', {'id': product_in_store.id}) }}">edit</a>
+                           {# <a href="{{ path('product_in_store_show', {'id': product.id}) }}">show</a>
+                            <a href="{{ path('product_in_store_edit', {'id': product.id}) }}">edit</a>  #}
                         </td>
                     </tr>  
 
@@ -35,13 +46,19 @@
                     <tr>
                         <td colspan="4">no records found</td>
                     </tr>
-                {% endfor %}                #}
+                {% endfor %}                
 
             </tbody>
         </table>
 
-        <div class = 'links'>    
-            <a href="{{ path('product_in_store_new') }}">Create new >>>></a>
+        <div class = 'links'>
+            <a href="{{ path('product_add') }}"> Add new product >>>> </a>
+        </div> 
+
+        <div class = 'links'>
+            
+
+        {#    <button type="button" id="addbutton"><a class="button" href="{{ path('product_add') }}">Add new product</a></button>  #}
         </div>
 
 {% endblock %}
