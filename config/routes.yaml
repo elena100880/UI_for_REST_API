@@ -6,15 +6,15 @@ product_add:
     path: /product/add
     controller: App\Controller\ProductInStoreController::product_add
 
+product_edit:
+    path: /products/edit/{id}
+    controller: App\Controller\ProductInStoreController::product_edit
 
-#product_delete:
-#    path: /products/{id}
-#    controller: App\Controller\ProductInStoreController::product_delete
-#    methods: DELETE
+product_delete:
+    path: /products/{id}
+    controller: App\Controller\ProductInStoreController::product_delete
+    
 
-#product_edit:
-#    path: /products/{id}
-#    controller: App\Controller\ProductInStoreController::product_edit
-#    methods: PATCH
+
 
 

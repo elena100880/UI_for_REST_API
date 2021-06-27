@@ -9,20 +9,17 @@
 
 {% block content %}
 
-        {% for message in app.flashes('succes') %}
+        {% for message in app.flashes('message') %}
             <div class='alert alert succes'>
                 <span style='color:aqua; font-weight: bold; font-size: 20px'>{{message}}</span>
             </div>
-        {% endfor %}
+        {% endfor %}<br>
 
         {{form_start(form)}}
-
             {{form_row(form.items)}}
-            
             <div class = 'form'> {{form_row(form.send)}} </div>
             <div class = 'form'> <button type="button"><a href="{{ path('products_all') }}">Show all items</a></button> </div>   
             <div style = 'clear:both'></div>
-
         {{form_end(form)}}
 
         <table class="table">
@@ -35,28 +32,24 @@
                 </tr>
             </thead>
             <tbody>
-
                 {% for product in products %}
                     <tr>
                         <td>{{ product.id }}</td>
                         <td>{{ product.name }}</td>
                         <td>{{ product.amount }}</td>
                         <td>
-                           {# <a href="{{ path('product_in_store_show', {'id': product.id}) }}">show</a>
-                            <a href="{{ path('product_in_store_edit', {'id': product.id}) }}">edit</a>  #}
+                            <a href="{{ path('product_edit', {'id': product.id}) }}">edit >>></a>
                         </td>
                     </tr>  
-
                 {% else %}
                     <tr>
                         <td colspan="4">no records found</td>
                     </tr>
                 {% endfor %}                
-
             </tbody>
         </table>
 
-        <span style="color: red; font-weight: bold" >{{userMessage}}<br><br>
+        <span style="color: red; font-weight: bold" >{{userMessage}}</span><br><br>
 
         <br><span style="color:fuchsia; font-weight: bold" >Dev info:<br>
         {{developerMessage}}</span><br><br>
