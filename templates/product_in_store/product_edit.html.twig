@@ -18,6 +18,7 @@
             {{form_row(form.amount)}}
             <div class = 'form'> {{form_row(form.save)}} </div>
             <div class = 'form'> {{form_row(form.delete)}} </div>
+            <div class = 'form'> <button type="button"><a href="{{ path('product_edit', {'id' :id}) }}">RESET</a></button> </div>   
             <div style = 'clear:both'></div>
         {{form_end(form)}}
                    

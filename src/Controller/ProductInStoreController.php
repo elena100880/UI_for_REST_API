@@ -2,10 +2,6 @@
 
 namespace App\Controller;
 
-#use App\Entity\ProductInStore;
-#use App\Form\ProductInStoreType;
-#use App\Repository\ProductInStoreRepository;
-
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,7 +17,7 @@ class ProductInStoreController extends AbstractController
 {
     private $client;
 
-    private const IP =  "172.17.0.3"; //access to API container
+    private const IP =  "api/index.php"; //access to API container; or justchange into IP = "api", if using my own Dockerfile from https://github.com/elena100880/dockerfile
 
     public function __construct(HttpClientInterface $client)
     {
@@ -58,7 +54,7 @@ class ProductInStoreController extends AbstractController
             $arrayDataFromAPI = $this->array_data_from_response($response);
                 
             if ($response->getStatusCode() == 200) {
-                $аrrayOfProducts = $arrayDataFromAPI['data'];   /** @todo convert decoded data into array of ProdutInStore objects? */
+                $аrrayOfProducts = $arrayDataFromAPI['data'];   
             }
             else {
                 $аrrayOfProducts = [];
@@ -83,7 +79,7 @@ class ProductInStoreController extends AbstractController
     {
 
         try{
-            $form = $this->createFormBuilder()           /** @todo make ProductInStore object TypeForm ? */
+            $form = $this->createFormBuilder()           
                                         ->add('name', TextType::class, ['label' => 'Name of Product:', 'required' => false ])
                                         ->add('amount', TextType::class, ['label' => 'Amount in Store:', 'data' => 0, 'required' => false ])
                                         ->add('save', SubmitType::class, ['label'=>'Add Product'])
@@ -97,23 +93,25 @@ class ProductInStoreController extends AbstractController
             if ($form->isSubmitted()) {
 
                 $dataFromForm = $form->getData();
-                $name = $dataFromForm['name'];      // must be string, not number as string, and not empty spaces as string, required      
-                $amount = intval($dataFromForm['amount']);  // if empty then =0, or positive integer
+                $name = $dataFromForm['name'];      
+                $amount = ($dataFromForm['amount']) ?? 0;  
                             
-                /** 
-                 * @todo some validation of user's input data: name and amount 
-                 * if not Valid - return some $userMessage and not make Request to api
-                 */
-                $jsonToAddProduct = json_encode(['name' => $name, 'amount' => $amount]);  /** @todo encode from object ProductInStore */
-                $response = $this->client->request( 'POST',  'http://'.ProductInStoreController::IP.'/products', ['body' => $jsonToAddProduct]);
-                $arrayDataFromAPI = $this->array_data_from_response($response);
-                            
-                if ($response->getStatusCode() == 200) {
-                    $this->addFlash('message','Product was seccesfully added!!');
-                    return $this->redirectToRoute('products_all');
+            //validation of user's data: 
+                if (!$this->is_name_valid($name)) $userMessage = "Please, check your Product's name: it must be a string with <2 and >50 characters.";
+                elseif (!$this->is_amount_valid($amount)) $userMessage = "Please, check your Product's amount: it must be positive integer or zero.";
+                else {    
+                
+                    $jsonToAddProduct = json_encode(['name' => $name, 'amount' => intval($amount)]);  
+                    $response = $this->client->request( 'POST',  'http://'.ProductInStoreController::IP.'/products', ['body' => $jsonToAddProduct]);
+                    $arrayDataFromAPI = $this->array_data_from_response($response);
+                                
+                    if ($response->getStatusCode() == 200) {
+                        $this->addFlash('message','Product was seccesfully added!!');
+                        return $this->redirectToRoute('products_all');
+                    }
+                    else $this->addFlash('message','Service is not available at the moment. Please, try again later.');
+                    $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response);
                 }
-                else $this->addFlash('message','Service is not available at the moment. Please, try again later.');
-                $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response);
             }
         }
         catch (TransportExceptionInterface|\RuntimeException $e) {
@@ -138,7 +136,7 @@ class ProductInStoreController extends AbstractController
             $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response);
 
             if ($response->getStatusCode() == 200) { 
-                $product = $arrayDataFromAPI['data'];  /** @todo convert decoded data into ProdutInStore object? */
+                $product = $arrayDataFromAPI['data']; 
             }
             elseif ($response->getStatusCode() == 404) {  //preventing open edit-page if Product was deleted
                 $this->addFlash('message','Product was already deleted!!');
@@ -148,7 +146,7 @@ class ProductInStoreController extends AbstractController
                 $this->addFlash('message','Editing is not available. Please, try again later!!');
                 return $this->redirectToRoute('products_all');
             }
-            $form = $this->createFormBuilder()           /** @todo make ProductInStore object TypeForm */
+            $form = $this->createFormBuilder()           
                                         ->add('name', TextType::class, ['label' => 'Name of Product:', 'data' => $product['name'], 'required' => false ])
                                         ->add('amount', TextType::class, ['label' => 'Amount in Store:', 'data' => $product['amount'], 'required' => false ])
                                         ->add('save', SubmitType::class, ['label'=>'Save changes'])
@@ -163,20 +161,21 @@ class ProductInStoreController extends AbstractController
                 else {
 
                     $dataFromForm = $form->getData();
-                    $name = $dataFromForm['name'];      // must be string, not number as string, and not empty spaces as string, required      
-                    $amount = intval($dataFromForm['amount']);  // if empty then =0, or positive integer
-                                
-                    /** 
-                     * @todo some validation of user's input data: name and amount 
-                     * if not Valid - return some $userMessage and not make Request to api
-                     */
-                    $jsonToAddProduct = json_encode(['name' => $name, 'amount' => $amount]);  /** @todo encode from object ProductInStore */
-                    $response = $this->client->request( 'PATCH',  'http://'.ProductInStoreController::IP.'/products/'.$id, ['body' => $jsonToAddProduct]);
-                    $arrayDataFromAPI = $this->array_data_from_response($response);
-                                    
-                    if ($response->getStatusCode() == 200) $this->addFlash('message','Product was seccesfully updated!!');
-                    else $this->addFlash('message','Service is not available at the moment. Please, try again later.');
-                    $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response);
+                    $name = $dataFromForm['name'];        
+                    $amount = intval($dataFromForm['amount']);  
+
+                //validation of user's data: 
+                    if (!$this->is_name_valid($name)) $userMessage = "Please, check your Product's name: it must be a string with <2 and >50 characters.";
+                    elseif (!$this->is_amount_valid($amount)) $userMessage = "Please, check your Product's amount: it must be positive integer or zero.";
+                    else {    
+                        $jsonToUpdateProduct = json_encode(['name' => $name, 'amount' => intval($amount)]);  
+                        $response = $this->client->request( 'PATCH',  'http://'.ProductInStoreController::IP.'/products/'.$id, ['body' => $jsonToUpdateProduct]);
+                        $arrayDataFromAPI = $this->array_data_from_response($response);
+                                        
+                        if ($response->getStatusCode() == 200) $this->addFlash('message','Product was seccesfully updated!!');
+                        else $this->addFlash('message','Service is not available at the moment. Please, try again later.');
+                        $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response);
+                    }
                 }
             }
         }
@@ -189,6 +188,7 @@ class ProductInStoreController extends AbstractController
             'form' => $form->createView(),
             'developerMessage' => $developerMessage,
             'userMessage' => $userMessage,
+            'id' => $id
         ]);
         return new Response($contents);
     }
@@ -198,9 +198,7 @@ class ProductInStoreController extends AbstractController
         try {
             $response = $this->client->request( 'DELETE', 'http://'.ProductInStoreController::IP.'/products/'.$id);
             $arrayDataFromAPI = $this->array_data_from_response($response);
-            //   $jsonDataFromAPI = $response->getContent(false); //а что я получу, если вернет не мой обработанный ответ, а симфони ошибку выдаст свою? или //ПарамКонвертер свое 500 вернет, когда БД недоступна??? тогда httpClient должен их обработать и выдать мне сюда 500
-            //  $arrayDataFromAPI = json_decode($jsonDataFromAPI, true);
-                   
+            
             if ($response->getStatusCode() == 200) {
                 $this->addFlash('message','Product was seccesfully deleted!!');
                 return $this->redirectToRoute('products_all');
@@ -230,5 +228,14 @@ class ProductInStoreController extends AbstractController
     private function array_data_from_response($response) {
         $jsonDataFromAPI = $response->getContent(false);
         return json_decode($jsonDataFromAPI, true);
+    }
+
+    private function is_name_valid ($name) {
+        if ($name === null or is_numeric($name) or strlen($name) > 50 or strlen($name) < 2 or (trim($name) == "") ) return false;
+        else return true;
+    }
+    private function is_amount_valid($amount) {
+        if (!is_numeric($amount) or ($amount - floor($amount) != 0) or $amount < 0 ) return false;
+        else return true;
     }
 }
