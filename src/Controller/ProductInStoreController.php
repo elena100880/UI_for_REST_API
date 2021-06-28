@@ -17,7 +17,7 @@ class ProductInStoreController extends AbstractController
 {
     private $client;
 
-    private const IP =  "api/index.php"; //access to API container; or justchange into IP = "api", if using my own Dockerfile from https://github.com/elena100880/dockerfile
+    private const IP =  "172.17.0.2"; //access to API container; or just change into IP = "api", if using my own Dockerfile from https://github.com/elena100880/dockerfile; or ="172.17.0.2" if using ip (cmd: docker inspect yy | grep IPAddress).
 
     public function __construct(HttpClientInterface $client)
     {
