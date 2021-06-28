@@ -9,8 +9,23 @@
 
 {% block content %}
 
-        {{form(form)}}
-           
+        {% for message in app.flashes('message') %}
+            <div class='alert alert succes'>
+                <span style='color:aqua; font-weight: bold; font-size: 20px'>{{message}}</span>
+            </div>
+        {% endfor %}<br>
+
+        {{form_start(form)}}
+            {{form_row(form.name)}}
+            {{form_row(form.amount)}}
+            <div class = 'form'> {{form_row(form.save)}} </div>
+            <div class = 'form'> {{form_row(form.reset)}} </div>
+            <div style = 'clear:both'></div>
+        {{form_end(form)}}
+
+        <br><span style="color: red; font-weight: bold" >{{userMessage}}</span><br><br>
+          
+        {# only for dev mode: #}
         <br><span style="color: fuchsia; font-weight: bold" >Dev info:<br>
         {{developerMessage}}</span><br><br>
      

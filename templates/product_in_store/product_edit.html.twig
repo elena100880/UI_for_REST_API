@@ -21,8 +21,11 @@
             <div style = 'clear:both'></div>
         {{form_end(form)}}
                    
+        <br><span style="color: red; font-weight: bold" >{{userMessage}}</span><br><br>
+          
+        {# only for dev mode: #}
         <br><span style="color: fuchsia; font-weight: bold" >Dev info:<br>
-        {{developerMessage}}</span><br><br>      
+        {{developerMessage}}</span><br><br>     
      
         <div class = 'links'>
             <a href="{{ path('products_all') }}"> Back to list of Products in Store >>>> </a>
