@@ -66,7 +66,7 @@ class ProductInStoreController extends AbstractController
                 $аrrayOfProducts = $arrayDataFromAPI['data']; 
                 $total = $arrayDataFromAPI['total'];
 
-                $viewDataForSlider = $this->get_data_for_slider($request, $total, $elements, $pageRange = 3);
+                $viewDataForSlider = $this->get_data_for_slider($request, $total, $elements, $pageRange = 5);
             }
 
             else {
@@ -260,12 +260,12 @@ class ProductInStoreController extends AbstractController
 
     private function get_data_for_slider($request, $total, $elements, $pageRange = 3) 
     {
-        //Get Data for Slider template:
-                // quantity of pages
+        //Get Data for Slider template, based on https://github.com/KnpLabs/KnpPaginatorBundle/blob/master/src/Pagination/SlidingPagination.php:
+                // quantity of pages:
                 $pageCount = ceil ($total/$elements); 
                 $current = $request->query->getInt('page', 1);
 
-                //quantity of page links shown
+                //quantity of page links shown:
                 if ($pageRange > $pageCount) $pageRange = $pageCount;
 
                 //make range of pages ($pageRange + 2):
