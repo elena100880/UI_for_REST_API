@@ -13,4 +13,12 @@ td, th {
 input[type='radio']{
 	width: 20px;
 }
+.navigation {
+	font-size: 30px;
+	
+}
+a {
+	text-decoration: none;
+}
+
 

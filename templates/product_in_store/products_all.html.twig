@@ -16,7 +16,7 @@
         {% endfor %}<br>
 
         {{form_start(form)}}
-            {{form_row(form.items)}}
+            {{form_row(form.amount)}}
             <div class = 'form'> {{form_row(form.send)}} </div>
             <div class = 'form'> <button type="button"><a href="{{ path('products_all') }}">Show all items</a></button> </div>   
             <div style = 'clear:both'></div>
@@ -48,6 +48,55 @@
                 {% endfor %}                
             </tbody>
         </table>
+
+       
+        <div class="navigation">
+            {% if pageCount is defined and pageCount > 1 %}
+                    <div class="pagination">
+                        {% if first is defined and current != first %}
+                            <span class="first">
+                                <a href="{{ path('products_all', queryToLink|merge( {'page': first} ) ) }}"> &lt;&lt;</a>
+                            </span>
+                        {% else %}
+                                <span class="current">&lt;&lt;</span>
+                        {% endif %}
+
+                        {% if previous is defined and not null and current != first %}
+                            <span class="previous">
+                                <a rel="prev" href="{{ path('products_all', queryToLink|merge( {'page': previous} ) ) }}">&lt;</a>
+                            </span>
+                        {% else %}
+                            <span class="current">&lt;</span>
+                        {% endif %}
+
+                        {% for page in pagesInRange %}
+                            {% if page != current %}
+                                <span class="page">
+                                    <a href="{{ path('products_all', queryToLink|merge( {'page': page} ) ) }}">{{ page }}</a>
+                                </span>
+                            {% else %}
+                                <span class="current">{{ page }}</span>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if next is defined and not null and current != last %}
+                            <span class="next">
+                                <a rel="next" href="{{ path('products_all', queryToLink|merge( {'page': next} ) ) }}">&gt;</a>
+                            </span>
+                        {% else %}
+                            <span class="current">&gt;</span>
+                        {% endif %}
+
+                        {% if last is defined and current != last %}
+                            <span class="last">
+                                <a href="{{ path('products_all',  {'amount': amount, 'elements': elements,  'page': last}  ) }}">&gt;&gt;</a>
+                            </span>
+                        {% else %}
+                            <span class="current">&gt;&gt;</span>
+                        {% endif %}
+                    </div>
+            {% endif %}
+        </div>
 
         {# only for dev: #}
         <br><span style="color:fuchsia; font-weight: bold" >Dev info:<br>

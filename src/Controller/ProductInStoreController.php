@@ -13,6 +13,9 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\ResetType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 
+use Knp\Component\Pager\PaginatorInterface;
+use Knp\Component\Pager\Event\Subscriber\Paginate\Callback\CallbackPagination;
+
 class ProductInStoreController extends AbstractController
 {
     private $client;
@@ -24,12 +27,12 @@ class ProductInStoreController extends AbstractController
         $this->client = $client;
     }
     
-    public function products_all (Request $request) : Response
+    public function products_all (Request $request, PaginatorInterface $paginator) : Response
     {   
         try {
             $form = $this->createFormBuilder()
                                         ->setMethod('GET')
-                                        ->add ('items', ChoiceType::class, [
+                                        ->add ('amount', ChoiceType::class, [
                                                                             'label' => ' ',
                                                                             'expanded' =>true,
                                                                             'choices' => [  'all items' => 1,
@@ -40,24 +43,35 @@ class ProductInStoreController extends AbstractController
                                         ->getForm();
             $form->handleRequest($request);
         
+            $elements = 5; 
             if ($form->isSubmitted() ) 
             {
                 $dataFromForm = $form->getData();
-                $itemsToSearch = $dataFromForm['items'];
+                $amount = $dataFromForm['amount'];
 
-                $query = ['amount' => $itemsToSearch];
-                if ($itemsToSearch == 0) $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query ]);
-                if ($itemsToSearch == 5) $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query ]);
-                if ($itemsToSearch == 1) $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query ]);
-            }
-            else $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products' );
-            $arrayDataFromAPI = $this->array_data_from_response($response);
-                
-            if ($response->getStatusCode() == 200) {
-                $аrrayOfProducts = $arrayDataFromAPI['data'];   
+                $query = ['amount' => $amount, 'elements' => $elements, 'page' => $request->query->getInt('page', 1)];
+                if ($amount == 0) $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query ]);
+                if ($amount == 5) $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query ]);
+                if ($amount == 1) $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query ]);
             }
             else {
+                $amount = $request->query->getInt('amount', 1);
+                $query = ['amount' => $amount, 'elements' => $elements, 'page' => $request->query->getInt('page', 1)];
+                $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query ]);
+            }
+            $arrayDataFromAPI = $this->array_data_from_response($response);                      
+            
+            
+            if ($response->getStatusCode() == 200) {
+                $аrrayOfProducts = $arrayDataFromAPI['data']; 
+                $total = $arrayDataFromAPI['total'];
+
+                $viewDataForSlider = $this->get_data_for_slider($request, $total, $elements, $pageRange = 3);
+            }
+
+            else {
                 $аrrayOfProducts = [];
+                $viewData = [];
                 $this->addFlash('message','Service is not available at the moment. Please, try again later.');
             }
             $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response); 
@@ -67,11 +81,16 @@ class ProductInStoreController extends AbstractController
             $this->addFlash('message','Service is not available at the moment. Please, try again later.');
         }      
 
-        $contents = $this->renderView('product_in_store/products_all.html.twig', [
+        $contents = $this->renderView('product_in_store/products_all.html.twig', 
+        array_merge([
             'products' => $аrrayOfProducts,
             'form' => $form->createView(),
             'developerMessage' => $developerMessage, //only for dev
-        ]);
+            'amount' => $amount,
+            'elements' => $elements],
+            $viewDataForSlider)
+
+        );
         return new Response($contents);
     }
 
@@ -237,5 +256,47 @@ class ProductInStoreController extends AbstractController
     private function is_amount_valid($amount) {
         if (!is_numeric($amount) or ($amount - floor($amount) != 0) or $amount < 0 ) return false;
         else return true;
+    }
+
+    private function get_data_for_slider($request, $total, $elements, $pageRange = 3) 
+    {
+        //Get Data for Slider template:
+                // quantity of pages
+                $pageCount = ceil ($total/$elements); 
+                $current = $request->query->getInt('page', 1);
+
+                //quantity of page links shown
+                if ($pageRange > $pageCount) $pageRange = $pageCount;
+
+                //make range of pages ($pageRange + 2):
+                $delta = ceil( $pageRange / 2);
+                if ($current - $delta > $pageCount - $pageRange) {
+                    $pagesInRange = range($pageCount - $pageRange + 1, $pageCount);
+                } else {
+                    if ($current - $delta < 0) {
+                        $delta = $current;
+                    }
+                    $offset = $current - $delta;
+                    $pagesInRange = range($offset + 1, $offset + $pageRange);
+                }
+              
+                $first =  1;
+                $last = $pageCount;
+                $previous = ($current > 1) ? $current - 1 : null;
+                $next =  ($current < $pageCount) ? $current + 1 : null;
+
+                $queryToLink = $request->query->all();
+                
+                return $viewData = ['pageCount' => $pageCount,
+                            'first' => $first,
+                            'last' => $last,
+                            'current' => $current,
+                            'previous' => $previous,
+                            'next' => $next,
+                            'pagesInRange' => $pagesInRange,
+                            'elements' => $elements,
+                            'queryToLink' => $queryToLink];
+            
+
     }
 }
