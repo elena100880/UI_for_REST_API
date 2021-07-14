@@ -20,7 +20,7 @@ class ProductInStoreController extends AbstractController
 {
     private $client;
 
-    private const IP =  "api/index.php"; //access to API container; or just change into IP = "api", if using my own Dockerfile from https://github.com/elena100880/dockerfile; or ="172.*.*.*" if using ip (cmd: docker inspect yy | grep IPAddress).
+    private const IP =  "api"; //access to API container; or just change into IP = "api", if using my own Dockerfile from https://github.com/elena100880/dockerfile; or ="172.*.*.*" if using ip (cmd: docker inspect yy | grep IPAddress).
 
     public function __construct(HttpClientInterface $client)
     {
@@ -48,17 +48,12 @@ class ProductInStoreController extends AbstractController
             {
                 $dataFromForm = $form->getData();
                 $amount = $dataFromForm['amount'];
-
-                $query = ['amount' => $amount, 'elements' => $elements, 'page' => $request->query->getInt('page', 1)];
-                if ($amount == 0) $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query ]);
-                if ($amount == 5) $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query ]);
-                if ($amount == 1) $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query ]);
+              
             }
-            else {
-                $amount = $request->query->getInt('amount', 1);
-                $query = ['amount' => $amount, 'elements' => $elements, 'page' => $request->query->getInt('page', 1)];
-                $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query ]);
-            }
+            else $amount = $request->query->getInt('amount', 1);
+            
+            $query = ['amount' => $amount, 'elements' => $elements, 'page' => $request->query->getInt('page', 1)];
+            $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query ]);
             $arrayDataFromAPI = $this->array_data_from_response($response);                      
             
             
