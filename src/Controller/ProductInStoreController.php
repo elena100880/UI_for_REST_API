@@ -7,6 +7,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Component\HttpClient\Response\TraceableResponse as ClientResponse;
 
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -55,8 +56,7 @@ class ProductInStoreController extends AbstractController
             $query = ['amount' => $amount, 'elements' => $elements, 'page' => $request->query->getInt('page', 1)];
             $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query ]);
             $arrayDataFromAPI = $this->array_data_from_response($response);                      
-            
-            
+                        
             if ($response->getStatusCode() == 200) {
                 $аrrayOfProducts = $arrayDataFromAPI['data']; 
                 $total = $arrayDataFromAPI['total'];
@@ -231,7 +231,7 @@ class ProductInStoreController extends AbstractController
         } 
     }
 
-    private function get_dev_info($arrayDataFromAPI, $response)
+    private function get_dev_info(array $arrayDataFromAPI, ClientResponse $response)
     {
         $message = $arrayDataFromAPI['message'] ?? "--";
         $code = $response->getStatusCode();
@@ -239,21 +239,24 @@ class ProductInStoreController extends AbstractController
         return "message: $message, code: $code, devInfo: $devInfo";
     }
 
-    private function array_data_from_response($response) {
+    private function array_data_from_response(ClientResponse $response) 
+    {
         $jsonDataFromAPI = $response->getContent(false);
         return json_decode($jsonDataFromAPI, true);
     }
 
-    private function is_name_valid ($name) {
+    private function is_name_valid ($name) : bool
+    {
         if ($name === null or is_numeric($name) or strlen($name) > 50 or strlen($name) < 2 or (trim($name) == "") ) return false;
         else return true;
     }
-    private function is_amount_valid($amount) {
+    private function is_amount_valid($amount) : bool
+    {
         if (!is_numeric($amount) or ($amount - floor($amount) != 0) or $amount < 0 ) return false;
         else return true;
     }
 
-    private function get_data_for_slider($request, $total, $elements, $pageRange = 3) 
+    private function get_data_for_slider(Request $request, $total, $elements, $pageRange = 3) : array
     {
         //Get Data for Slider template, based on https://github.com/KnpLabs/KnpPaginatorBundle/blob/master/src/Pagination/SlidingPagination.php:
                 // quantity of pages:
