@@ -16,7 +16,7 @@
         {% endfor %}<br>
 
         {{form_start(form)}}
-            {{form_row(form.amount)}}
+            {{form_row(form.select)}}
             <div class = 'form'> {{form_row(form.send)}} </div>
             <div class = 'form'> <button type="button"><a href="{{ path('products_all') }}">Show all items</a></button> </div>   
             <div style = 'clear:both'></div>

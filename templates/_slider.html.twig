@@ -38,7 +38,7 @@
 
                         {% if last is defined and current != last %}
                             <span class="last">
-                                <a href="{{ path('products_all',  {'amount': amount, 'elements': elements,  'page': last}  ) }}">&gt;&gt;</a>
+                                <a href="{{ path('products_all',  {'select': select, 'elements': elements,  'page': last}  ) }}">&gt;&gt;</a>
                             </span>
                         {% else %}
                             <span class="current">&gt;&gt;</span>

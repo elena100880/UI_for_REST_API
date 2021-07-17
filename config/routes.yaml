@@ -7,11 +7,11 @@ product_add:
     controller: App\Controller\ProductInStoreController::product_add
 
 product_edit:
-    path: /product/edit/{id}
+    path: /product/edit/{id<[1-9]\d*>}
     controller: App\Controller\ProductInStoreController::product_edit
 
 product_delete:
-    path: /product/delete/{id}
+    path: /product/delete/{id<[1-9]\d*>}
     controller: App\Controller\ProductInStoreController::product_delete
     
 

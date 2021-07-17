@@ -1,10 +1,12 @@
 <?php
+//declare(strict_types = 1);
 
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Component\HttpClient\Response\TraceableResponse as ClientResponse;
@@ -19,9 +21,15 @@ use Knp\Component\Pager\Event\Subscriber\Paginate\Callback\CallbackPagination;
 
 class ProductInStoreController extends AbstractController
 {
-    private $client;
-
     private const IP =  "api"; //access to API container; or just change into IP = "api", if using my own Dockerfile from https://github.com/elena100880/dockerfile; or ="172.*.*.*" if using ip (cmd: docker inspect yy | grep IPAddress).
+
+    private const ELEMENTS = 5;  //number of elements on the page
+    private const PAGE_RANGE = 3;   //amount of page numbers to click
+
+    //flash messages:
+    
+
+    private $client;
 
     public function __construct(HttpClientInterface $client)
     {
@@ -33,7 +41,7 @@ class ProductInStoreController extends AbstractController
         try {
             $form = $this->createFormBuilder()
                                         ->setMethod('GET')
-                                        ->add ('amount', ChoiceType::class, [
+                                        ->add ('select', ChoiceType::class, [
                                                                             'label' => ' ',
                                                                             'expanded' =>true,
                                                                             'choices' => [  'all items' => 1,
@@ -44,16 +52,15 @@ class ProductInStoreController extends AbstractController
                                         ->getForm();
             $form->handleRequest($request);
         
-            $elements = 5; 
-            if ($form->isSubmitted() ) 
-            {
+            if ($form->isSubmitted() ) {
                 $dataFromForm = $form->getData();
-                $amount = $dataFromForm['amount'];
-              
+                $select = $dataFromForm['select'];
             }
-            else $amount = $request->query->getInt('amount', 1);
+            else {
+                $select = $request->query->getInt('select', 1);
+            }
             
-            $query = ['amount' => $amount, 'elements' => $elements, 'page' => $request->query->getInt('page', 1)];
+            $query = ['select' => $select, 'elements' => ProductInStoreController::ELEMENTS, 'page' => $request->query->getInt('page', 1)];
             $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query ]);
             $arrayDataFromAPI = $this->array_data_from_response($response);                      
                         
@@ -61,7 +68,7 @@ class ProductInStoreController extends AbstractController
                 $аrrayOfProducts = $arrayDataFromAPI['data']; 
                 $total = $arrayDataFromAPI['total'];
 
-                $viewDataForSlider = $this->get_data_for_slider($request, $total, $elements, $pageRange = 5);
+                $viewDataForSlider = $this->get_data_for_slider($request, $total, ProductInStoreController::ELEMENTS, ProductInStoreController::PAGE_RANGE);
             }
 
             else {
@@ -81,8 +88,8 @@ class ProductInStoreController extends AbstractController
             'products' => $аrrayOfProducts,
             'form' => $form->createView(),
             'developerMessage' => $developerMessage, //only for dev
-            'amount' => $amount,
-            'elements' => $elements],
+            'select' => $select,
+            'elements' => ProductInStoreController::ELEMENTS],
             $viewDataForSlider)
 
         );
@@ -140,7 +147,7 @@ class ProductInStoreController extends AbstractController
         return new Response($contents);
     }
 
-    public function product_edit(Request $request, $id): Response
+    public function product_edit(Request $request, int $id): Response
     {
     
     //quering for product to edit:
@@ -152,8 +159,8 @@ class ProductInStoreController extends AbstractController
             if ($response->getStatusCode() == 200) { 
                 $product = $arrayDataFromAPI['data']; 
             }
-            elseif ($response->getStatusCode() == 404) {  //preventing open edit-page if Product was deleted
-                $this->addFlash('message','Product was already deleted!!');
+            elseif ($response->getStatusCode() == 404) {  //preventing open edit-page if Product was deleted/noe exist
+                $this->addFlash('message','Product was already deleted or not exist!!');
                 return $this->redirectToRoute('products_all');
             }
             else {
@@ -171,27 +178,38 @@ class ProductInStoreController extends AbstractController
         //quering to update the Product:
             $userMessage = null;
             if ($form->isSubmitted()) {
-                if ($form->getClickedButton()->getName() == 'delete') return $this->redirectToRoute('product_delete', ['id' => $id]);
+                if ($form->getClickedButton()->getName() == 'delete') {
+                    return $this->redirectToRoute('product_delete', ['id' => $id]);
+                }
                 else {
-
                     $dataFromForm = $form->getData();
                     $name = $dataFromForm['name'];        
                     $amount = intval($dataFromForm['amount']);  
 
                 //validation of user's data: 
-                    if (!$this->is_name_valid($name)) $userMessage = "Please, check your Product's name: it must be a string with <2 and >50 characters.";
-                    elseif (!$this->is_amount_valid($amount)) $userMessage = "Please, check your Product's amount: it must be positive integer or zero.";
+                    if (!$this->is_name_valid($name)) {
+                        $userMessage = "Please, check your Product's name: it must be a string with <2 and >50 characters.";
+                    }
+                    elseif (!$this->is_amount_valid($amount)) {
+                        $userMessage = "Please, check your Product's amount: it must be positive integer or zero.";
+                    }
                     else {    
                         $jsonToUpdateProduct = json_encode(['name' => $name, 'amount' => intval($amount)]);  
                         $response = $this->client->request( 'PATCH',  'http://'.ProductInStoreController::IP.'/products/'.$id, ['body' => $jsonToUpdateProduct]);
                         $arrayDataFromAPI = $this->array_data_from_response($response);
-                                        
-                        if ($response->getStatusCode() == 200) $this->addFlash('message','Product was seccesfully updated!!');
-                        else $this->addFlash('message','Service is not available at the moment. Please, try again later.');
                         $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response);
+
+                        if ($response->getStatusCode() == 200) {
+                            $this->addFlash('message','Product was seccesfully updated!!');
+                        }
+                        else {
+                            $this->addFlash('message','Service is not available at the moment. Please, try again later.');
+                        }
+                        
                     }
                 }
             }
+            
         }
         catch (TransportExceptionInterface|\RuntimeException $e) {
             $developerMessage = $e->getMessage();
@@ -207,7 +225,7 @@ class ProductInStoreController extends AbstractController
         return new Response($contents);
     }
 
-    public function product_delete(Request $request, $id)
+    public function product_delete(Request $request, int $id): RedirectResponse
     {
         try {
             $response = $this->client->request( 'DELETE', 'http://'.ProductInStoreController::IP.'/products/'.$id);
@@ -231,7 +249,7 @@ class ProductInStoreController extends AbstractController
         } 
     }
 
-    private function get_dev_info(array $arrayDataFromAPI, ClientResponse $response)
+    private function get_dev_info(array $arrayDataFromAPI, ClientResponse $response): string
     {
         $message = $arrayDataFromAPI['message'] ?? "--";
         $code = $response->getStatusCode();
@@ -239,7 +257,7 @@ class ProductInStoreController extends AbstractController
         return "message: $message, code: $code, devInfo: $devInfo";
     }
 
-    private function array_data_from_response(ClientResponse $response) 
+    private function array_data_from_response(ClientResponse $response): array
     {
         $jsonDataFromAPI = $response->getContent(false);
         return json_decode($jsonDataFromAPI, true);
@@ -247,16 +265,24 @@ class ProductInStoreController extends AbstractController
 
     private function is_name_valid ($name) : bool
     {
-        if ($name === null or is_numeric($name) or strlen($name) > 50 or strlen($name) < 2 or (trim($name) == "") ) return false;
-        else return true;
+        if ($name === null || is_numeric($name) || strlen($name) > 50 or strlen($name) < 2 || (trim($name) == "") ) {
+            return false;
+        }
+        else {
+            return true;
+        }
     }
     private function is_amount_valid($amount) : bool
     {
-        if (!is_numeric($amount) or ($amount - floor($amount) != 0) or $amount < 0 ) return false;
-        else return true;
+        if (!is_numeric($amount) || ($amount - floor($amount) != 0) || $amount < 0 ) {
+            return false;
+        }
+        else {
+            return true;
+        }
     }
 
-    private function get_data_for_slider(Request $request, $total, $elements, $pageRange = 3) : array
+    private function get_data_for_slider(Request $request, int $total, int $elements, int $pageRange) : array
     {
         //Get Data for Slider template, based on https://github.com/KnpLabs/KnpPaginatorBundle/blob/master/src/Pagination/SlidingPagination.php:
                 // quantity of pages:
@@ -294,7 +320,5 @@ class ProductInStoreController extends AbstractController
                             'pagesInRange' => $pagesInRange,
                             'elements' => $elements,
                             'queryToLink' => $queryToLink];
-            
-
     }
 }
