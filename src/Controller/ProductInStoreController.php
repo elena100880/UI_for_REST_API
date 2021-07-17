@@ -27,10 +27,24 @@ class ProductInStoreController extends AbstractController
     private const PAGE_RANGE = 3;   //amount of page numbers to click
 
     //flash messages:
+    private const API_NOT_200_RESPONSE_GENERAL = "Service is not available at the moment. Please, try again later.";
+    private const API_NOT_200_RESPONSE_FOR_EDIT = "Editing is not available. Please, try again later!!";
+    private const API_NOT_200_RESPONSE_FOR_DELETE = "Deleting is not available at the moment. Please, try again later!!";
+
+    private const API_200_PRODUCT_ADD = "Product was seccesfully added!!";
+    private const API_200_PRODUCT_UPDATE = "Product was seccesfully updated!!";
+    private const API_200_PRODUCT_DELETE = "Product was seccesfully deleted!!";
+    private const API_404_PRODUCT_NOT_FOUND = "Product was already deleted or not exist!!";
+
+    //user messages:
+    private const USER_MESSSAGE_INVALID_NAME = "Please, check your Product's name: it must be a string with >2 and <50 characters.";
+    private const USER_MESSSAGE_INVALID_AMOUNT = "Please, check your Product's amount: it must be positive integer or zero.";
+    
     
 
-    private $client;
 
+
+    private $client;
     public function __construct(HttpClientInterface $client)
     {
         $this->client = $client;
@@ -67,20 +81,18 @@ class ProductInStoreController extends AbstractController
             if ($response->getStatusCode() == 200) {
                 $аrrayOfProducts = $arrayDataFromAPI['data']; 
                 $total = $arrayDataFromAPI['total'];
-
                 $viewDataForSlider = $this->get_data_for_slider($request, $total, ProductInStoreController::ELEMENTS, ProductInStoreController::PAGE_RANGE);
             }
-
             else {
                 $аrrayOfProducts = [];
                 $viewDataForSlider = [];
-                $this->addFlash('message','Service is not available at the moment. Please, try again later.');
+                $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_GENERAL);
             }
             $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response); 
         }
         catch (TransportExceptionInterface|\RuntimeException $e) {
             $developerMessage = $e->getMessage();
-            $this->addFlash('message','Service is not available at the moment. Please, try again later.');
+            $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_GENERAL);
         }      
 
         $contents = $this->renderView('product_in_store/products_all.html.twig', 
@@ -118,26 +130,31 @@ class ProductInStoreController extends AbstractController
                 $amount = ($dataFromForm['amount']) ?? 0;  
                             
             //validation of user's data: 
-                if (!$this->is_name_valid($name)) $userMessage = "Please, check your Product's name: it must be a string with <2 and >50 characters.";
-                elseif (!$this->is_amount_valid($amount)) $userMessage = "Please, check your Product's amount: it must be positive integer or zero.";
+                if (!$this->is_name_valid($name)) {
+                    $userMessage = ProductInStoreController::USER_MESSSAGE_INVALID_NAME;
+                }
+                elseif (!$this->is_amount_valid($amount)) {
+                    $userMessage = ProductInStoreController::USER_MESSSAGE_INVALID_AMOUNT;
+                }
                 else {    
-                
                     $jsonToAddProduct = json_encode(['name' => $name, 'amount' => intval($amount)]);  
                     $response = $this->client->request( 'POST',  'http://'.ProductInStoreController::IP.'/products', ['body' => $jsonToAddProduct]);
                     $arrayDataFromAPI = $this->array_data_from_response($response);
                                 
                     if ($response->getStatusCode() == 200) {
-                        $this->addFlash('message','Product was seccesfully added!!');
+                        $this->addFlash('message',ProductInStoreController::API_200_PRODUCT_ADD);
                         return $this->redirectToRoute('products_all');
                     }
-                    else $this->addFlash('message','Service is not available at the moment. Please, try again later.');
+                    else {
+                        $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_GENERAL);
+                    }
                     $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response);
                 }
             }
         }
         catch (TransportExceptionInterface|\RuntimeException $e) {
             $developerMessage = $e->getMessage();
-            $this->addFlash('message','Service is not available at the moment. Please, try again later.');
+            $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_GENERAL);
         }                     
         $contents = $this->renderView('product_in_store/product_add.html.twig', [
             'form' => $form->createView(),
@@ -160,11 +177,11 @@ class ProductInStoreController extends AbstractController
                 $product = $arrayDataFromAPI['data']; 
             }
             elseif ($response->getStatusCode() == 404) {  //preventing open edit-page if Product was deleted/noe exist
-                $this->addFlash('message','Product was already deleted or not exist!!');
+                $this->addFlash('message', ProductInStoreController::API_404_PRODUCT_NOT_FOUND);
                 return $this->redirectToRoute('products_all');
             }
             else {
-                $this->addFlash('message','Editing is not available. Please, try again later!!');
+                $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_FOR_EDIT);
                 return $this->redirectToRoute('products_all');
             }
             $form = $this->createFormBuilder()           
@@ -188,10 +205,10 @@ class ProductInStoreController extends AbstractController
 
                 //validation of user's data: 
                     if (!$this->is_name_valid($name)) {
-                        $userMessage = "Please, check your Product's name: it must be a string with <2 and >50 characters.";
+                        $userMessage = ProductInStoreController::USER_MESSSAGE_INVALID_NAME;
                     }
                     elseif (!$this->is_amount_valid($amount)) {
-                        $userMessage = "Please, check your Product's amount: it must be positive integer or zero.";
+                        $userMessage = ProductInStoreController::USER_MESSSAGE_INVALID_AMOUNT;
                     }
                     else {    
                         $jsonToUpdateProduct = json_encode(['name' => $name, 'amount' => intval($amount)]);  
@@ -200,20 +217,18 @@ class ProductInStoreController extends AbstractController
                         $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response);
 
                         if ($response->getStatusCode() == 200) {
-                            $this->addFlash('message','Product was seccesfully updated!!');
+                            $this->addFlash('message', ProductInStoreController::API_200_PRODUCT_UPDATE);
                         }
                         else {
-                            $this->addFlash('message','Service is not available at the moment. Please, try again later.');
+                            $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_GENERAL);
                         }
-                        
                     }
                 }
             }
-            
         }
         catch (TransportExceptionInterface|\RuntimeException $e) {
             $developerMessage = $e->getMessage();
-            $this->addFlash('message','Service is not available at the moment. Please, try again later.');
+            $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_GENERAL);
         } 
 
         $contents = $this->renderView('product_in_store/product_edit.html.twig', [
@@ -232,19 +247,16 @@ class ProductInStoreController extends AbstractController
             $arrayDataFromAPI = $this->array_data_from_response($response);
             
             if ($response->getStatusCode() == 200) {
-                $this->addFlash('message','Product was seccesfully deleted!!');
+                $this->addFlash('message', ProductInStoreController::API_200_PRODUCT_DELETE);
                 return $this->redirectToRoute('products_all');
             }
             else {
-                $this->addFlash('message','Deleting is not available at the moment. Please, try again later!!');
+                $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_FOR_DELETE);
                 return $this->redirectToRoute('product_edit', ['id' => $id]);
             }
-
-            $this->addFlash('message','Product was seccesfully added!!');
-            return $this->redirectToRoute('products_all');
         }
         catch (TransportExceptionInterface|\RuntimeException $e) {
-            $this->addFlash('message','Deleting is not available at the moment. Please, try again later!!');
+            $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_FOR_DELETE);
             return $this->redirectToRoute('product_edit', ['id' => $id]);
         } 
     }
