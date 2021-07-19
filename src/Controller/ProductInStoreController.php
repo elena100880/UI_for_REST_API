@@ -40,10 +40,6 @@ class ProductInStoreController extends AbstractController
     private const USER_MESSSAGE_INVALID_NAME = "Please, check your Product's name: it must be a string with >2 and <50 characters.";
     private const USER_MESSSAGE_INVALID_AMOUNT = "Please, check your Product's amount: it must be positive integer or zero.";
     
-    
-
-
-
     private $client;
     public function __construct(HttpClientInterface $client)
     {
@@ -261,7 +257,7 @@ class ProductInStoreController extends AbstractController
         } 
     }
 
-    private function get_dev_info(array $arrayDataFromAPI, ClientResponse $response): string
+    private function get_dev_info(?array $arrayDataFromAPI, ClientResponse $response): ?string
     {
         $message = $arrayDataFromAPI['message'] ?? "--";
         $code = $response->getStatusCode();
@@ -269,7 +265,7 @@ class ProductInStoreController extends AbstractController
         return "message: $message, code: $code, devInfo: $devInfo";
     }
 
-    private function array_data_from_response(ClientResponse $response): array
+    private function array_data_from_response(ClientResponse $response): ?array
     {
         $jsonDataFromAPI = $response->getContent(false);
         return json_decode($jsonDataFromAPI, true);
