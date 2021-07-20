@@ -17,7 +17,7 @@ use Symfony\Component\Form\Extension\Core\Type\ResetType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 
 use Knp\Component\Pager\PaginatorInterface;
-use Knp\Component\Pager\Event\Subscriber\Paginate\Callback\CallbackPagination;
+
 
 class ProductInStoreController extends AbstractController
 {
