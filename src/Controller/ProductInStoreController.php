@@ -1,325 +1,318 @@
 <?php
+
 //declare(strict_types = 1);
 
 namespace App\Controller;
 
+use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-
-use Symfony\Contracts\HttpClient\HttpClientInterface;
-use Symfony\Component\HttpClient\Response\TraceableResponse as ClientResponse;
-
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\ResetType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
-
-use Knp\Component\Pager\PaginatorInterface;
-
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\HttpClient\Response\TraceableResponse as ClientResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class ProductInStoreController extends AbstractController
 {
-    private const IP =  "api"; //access to API container; or just change into IP = "api", if using my own Dockerfile from https://github.com/elena100880/dockerfile; or ="172.*.*.*" if using ip (cmd: docker inspect yy | grep IPAddress).
+    private const IP = 'api'; //access to API container; or just change into IP = "api", if using my own Dockerfile from https://github.com/elena100880/dockerfile; or ="172.*.*.*" if using ip (cmd: docker inspect yy | grep IPAddress).
 
     private const ELEMENTS = 5;  //number of elements on the page
     private const PAGE_RANGE = 3;   //amount of page numbers to click
 
     //flash messages:
-    private const API_NOT_200_RESPONSE_GENERAL = "Service is not available at the moment. Please, try again later.";
-    private const API_NOT_200_RESPONSE_FOR_EDIT = "Editing is not available. Please, try again later!!";
-    private const API_NOT_200_RESPONSE_FOR_DELETE = "Deleting is not available at the moment. Please, try again later!!";
+    private const API_NOT_200_RESPONSE_GENERAL = 'Service is not available at the moment. Please, try again later.';
+    private const API_NOT_200_RESPONSE_FOR_EDIT = 'Editing is not available. Please, try again later!!';
+    private const API_NOT_200_RESPONSE_FOR_DELETE = 'Deleting is not available at the moment. Please, try again later!!';
 
-    private const API_200_PRODUCT_ADD = "Product was seccesfully added!!";
-    private const API_200_PRODUCT_UPDATE = "Product was seccesfully updated!!";
-    private const API_200_PRODUCT_DELETE = "Product was seccesfully deleted!!";
-    private const API_404_PRODUCT_NOT_FOUND = "Product was already deleted or not exist!!";
+    private const API_200_PRODUCT_ADD = 'Product was seccesfully added!!';
+    private const API_200_PRODUCT_UPDATE = 'Product was seccesfully updated!!';
+    private const API_200_PRODUCT_DELETE = 'Product was seccesfully deleted!!';
+    private const API_404_PRODUCT_NOT_FOUND = 'Product was already deleted or not exist!!';
 
     //user messages:
     private const USER_MESSSAGE_INVALID_NAME = "Please, check your Product's name: it must be a string with >2 and <50 characters.";
     private const USER_MESSSAGE_INVALID_AMOUNT = "Please, check your Product's amount: it must be positive integer or zero.";
-    
+
     private $client;
+
     public function __construct(HttpClientInterface $client)
     {
         $this->client = $client;
     }
-    
-    public function products_all (Request $request, PaginatorInterface $paginator) : Response
-    {   
+
+    public function products_all(Request $request, PaginatorInterface $paginator): Response
+    {
         try {
             $form = $this->createFormBuilder()
                                         ->setMethod('GET')
-                                        ->add ('select', ChoiceType::class, [
+                                        ->add('select', ChoiceType::class, [
                                                                             'label' => ' ',
-                                                                            'expanded' =>true,
-                                                                            'choices' => [  'all items' => 1,
+                                                                            'expanded' => true,
+                                                                            'choices' => ['all items' => 1,
                                                                                             'zero amount items' => 0,
-                                                                                            'more than five items' => 5],
-                                                                            'data' => 1])
-                                        ->add('send', SubmitType::class, ['label'=>'Show chosen'])
+                                                                                            'more than five items' => 5, ],
+                                                                            'data' => 1, ])
+                                        ->add('send', SubmitType::class, ['label' => 'Show chosen'])
                                         ->getForm();
             $form->handleRequest($request);
-        
-            if ($form->isSubmitted() ) {
+
+            if ($form->isSubmitted()) {
                 $dataFromForm = $form->getData();
                 $select = $dataFromForm['select'];
-            }
-            else {
+            } else {
                 $select = $request->query->getInt('select', 1);
             }
-            
+
             $query = ['select' => $select, 'elements' => ProductInStoreController::ELEMENTS, 'page' => $request->query->getInt('page', 1)];
-            $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query ]);
-            $arrayDataFromAPI = $this->array_data_from_response($response);                      
-                        
-            if ($response->getStatusCode() == 200) {
-                $аrrayOfProducts = $arrayDataFromAPI['data']; 
+            $response = $this->client->request('GET', 'http://'.ProductInStoreController::IP.'/products', ['query' => $query]);
+            $arrayDataFromAPI = $this->array_data_from_response($response);
+
+            if (200 == $response->getStatusCode()) {
+                $аrrayOfProducts = $arrayDataFromAPI['data'];
                 $total = $arrayDataFromAPI['total'];
                 $viewDataForSlider = $this->get_data_for_slider($request, $total, ProductInStoreController::ELEMENTS, ProductInStoreController::PAGE_RANGE);
-            }
-            else {
+            } else {
                 $аrrayOfProducts = [];
                 $viewDataForSlider = [];
                 $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_GENERAL);
             }
-            $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response); 
-        }
-        catch (TransportExceptionInterface|\RuntimeException $e) {
+            $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response);
+        } catch (TransportExceptionInterface | \RuntimeException $e) {
             $developerMessage = $e->getMessage();
             $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_GENERAL);
-        }      
+        }
 
-        $contents = $this->renderView('product_in_store/products_all.html.twig', 
-        array_merge([
+        $contents = $this->renderView(
+            'product_in_store/products_all.html.twig',
+            array_merge(
+                [
             'products' => $аrrayOfProducts,
             'form' => $form->createView(),
             'developerMessage' => $developerMessage, //only for dev
             'select' => $select,
-            'elements' => ProductInStoreController::ELEMENTS],
-            $viewDataForSlider)
-
+            'elements' => ProductInStoreController::ELEMENTS, ],
+                $viewDataForSlider
+            )
         );
+
         return new Response($contents);
     }
 
     public function product_add(Request $request): Response
     {
-
-        try{
-            $form = $this->createFormBuilder()           
-                                        ->add('name', TextType::class, ['label' => 'Name of Product:', 'required' => false ])
-                                        ->add('amount', TextType::class, ['label' => 'Amount in Store:', 'data' => 0, 'required' => false ])
-                                        ->add('save', SubmitType::class, ['label'=>'Add Product'])
-                                        ->add('reset', ResetType::class,['label'=>'RESET'] )
+        try {
+            $form = $this->createFormBuilder()
+                                        ->add('name', TextType::class, ['label' => 'Name of Product:', 'required' => false])
+                                        ->add('amount', TextType::class, ['label' => 'Amount in Store:', 'data' => 0, 'required' => false])
+                                        ->add('save', SubmitType::class, ['label' => 'Add Product'])
+                                        ->add('reset', ResetType::class, ['label' => 'RESET'])
                                         ->getForm();
             $form->handleRequest($request);
-        
+
             $userMessage = null;
-            $developerMessage = "Not connected to API yet";
+            $developerMessage = 'Not connected to API yet';
 
             if ($form->isSubmitted()) {
-
                 $dataFromForm = $form->getData();
-                $name = $dataFromForm['name'];      
-                $amount = ($dataFromForm['amount']) ?? 0;  
-                            
-            //validation of user's data: 
+                $name = $dataFromForm['name'];
+                $amount = ($dataFromForm['amount']) ?? 0;
+
+                //validation of user's data:
                 if (!$this->is_name_valid($name)) {
                     $userMessage = ProductInStoreController::USER_MESSSAGE_INVALID_NAME;
-                }
-                elseif (!$this->is_amount_valid($amount)) {
+                } elseif (!$this->is_amount_valid($amount)) {
                     $userMessage = ProductInStoreController::USER_MESSSAGE_INVALID_AMOUNT;
-                }
-                else {    
-                    $jsonToAddProduct = json_encode(['name' => $name, 'amount' => intval($amount)]);  
-                    $response = $this->client->request( 'POST',  'http://'.ProductInStoreController::IP.'/products', ['body' => $jsonToAddProduct]);
+                } else {
+                    $jsonToAddProduct = json_encode(['name' => $name, 'amount' => intval($amount)]);
+                    $response = $this->client->request('POST', 'http://'.ProductInStoreController::IP.'/products', ['body' => $jsonToAddProduct]);
                     $arrayDataFromAPI = $this->array_data_from_response($response);
-                                
-                    if ($response->getStatusCode() == 200) {
-                        $this->addFlash('message',ProductInStoreController::API_200_PRODUCT_ADD);
+
+                    if (200 == $response->getStatusCode()) {
+                        $this->addFlash('message', ProductInStoreController::API_200_PRODUCT_ADD);
+
                         return $this->redirectToRoute('products_all');
-                    }
-                    else {
+                    } else {
                         $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_GENERAL);
                     }
                     $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response);
                 }
             }
-        }
-        catch (TransportExceptionInterface|\RuntimeException $e) {
+        } catch (TransportExceptionInterface | \RuntimeException $e) {
             $developerMessage = $e->getMessage();
             $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_GENERAL);
-        }                     
+        }
         $contents = $this->renderView('product_in_store/product_add.html.twig', [
             'form' => $form->createView(),
             'developerMessage' => $developerMessage, //only for dev
             'userMessage' => $userMessage,
         ]);
+
         return new Response($contents);
     }
 
     public function product_edit(Request $request, int $id): Response
     {
-    
-    //quering for product to edit:
-        try{    
-            $response = $this->client->request( 'GET', 'http://'.ProductInStoreController::IP.'/products/'.$id);
+        //quering for product to edit:
+        try {
+            $response = $this->client->request('GET', 'http://'.ProductInStoreController::IP.'/products/'.$id);
             $arrayDataFromAPI = $this->array_data_from_response($response);
             $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response);
 
-            if ($response->getStatusCode() == 200) { 
-                $product = $arrayDataFromAPI['data']; 
-            }
-            elseif ($response->getStatusCode() == 404) {  //preventing open edit-page if Product was deleted/noe exist
+            if (200 == $response->getStatusCode()) {
+                $product = $arrayDataFromAPI['data'];
+            } elseif (404 == $response->getStatusCode()) {  //preventing open edit-page if Product was deleted/noe exist
                 $this->addFlash('message', ProductInStoreController::API_404_PRODUCT_NOT_FOUND);
+
                 return $this->redirectToRoute('products_all');
-            }
-            else {
+            } else {
                 $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_FOR_EDIT);
+
                 return $this->redirectToRoute('products_all');
             }
-            $form = $this->createFormBuilder()           
-                                        ->add('name', TextType::class, ['label' => 'Name of Product:', 'data' => $product['name'], 'required' => false ])
-                                        ->add('amount', TextType::class, ['label' => 'Amount in Store:', 'data' => $product['amount'], 'required' => false ])
-                                        ->add('save', SubmitType::class, ['label'=>'Save changes'])
-                                        ->add('delete', SubmitType::class, ['label'=>'Delete Product!!'])
+            $form = $this->createFormBuilder()
+                                        ->add('name', TextType::class, ['label' => 'Name of Product:', 'data' => $product['name'], 'required' => false])
+                                        ->add('amount', TextType::class, ['label' => 'Amount in Store:', 'data' => $product['amount'], 'required' => false])
+                                        ->add('save', SubmitType::class, ['label' => 'Save changes'])
+                                        ->add('delete', SubmitType::class, ['label' => 'Delete Product!!'])
                                         ->getForm();
             $form->handleRequest($request);
-            
-        //quering to update the Product:
+
+            //quering to update the Product:
             $userMessage = null;
             if ($form->isSubmitted()) {
-                if ($form->getClickedButton()->getName() == 'delete') {
+                if ('delete' == $form->getClickedButton()->getName()) {
                     return $this->redirectToRoute('product_delete', ['id' => $id]);
-                }
-                else {
+                } else {
                     $dataFromForm = $form->getData();
-                    $name = $dataFromForm['name'];        
-                    $amount = intval($dataFromForm['amount']);  
+                    $name = $dataFromForm['name'];
+                    $amount = intval($dataFromForm['amount']);
 
-                //validation of user's data: 
+                    //validation of user's data:
                     if (!$this->is_name_valid($name)) {
                         $userMessage = ProductInStoreController::USER_MESSSAGE_INVALID_NAME;
-                    }
-                    elseif (!$this->is_amount_valid($amount)) {
+                    } elseif (!$this->is_amount_valid($amount)) {
                         $userMessage = ProductInStoreController::USER_MESSSAGE_INVALID_AMOUNT;
-                    }
-                    else {    
-                        $jsonToUpdateProduct = json_encode(['name' => $name, 'amount' => intval($amount)]);  
-                        $response = $this->client->request( 'PATCH',  'http://'.ProductInStoreController::IP.'/products/'.$id, ['body' => $jsonToUpdateProduct]);
+                    } else {
+                        $jsonToUpdateProduct = json_encode(['name' => $name, 'amount' => intval($amount)]);
+                        $response = $this->client->request('PATCH', 'http://'.ProductInStoreController::IP.'/products/'.$id, ['body' => $jsonToUpdateProduct]);
                         $arrayDataFromAPI = $this->array_data_from_response($response);
                         $developerMessage = $this->get_dev_info($arrayDataFromAPI, $response);
 
-                        if ($response->getStatusCode() == 200) {
+                        if (200 == $response->getStatusCode()) {
                             $this->addFlash('message', ProductInStoreController::API_200_PRODUCT_UPDATE);
-                        }
-                        else {
+                        } else {
                             $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_GENERAL);
                         }
                     }
                 }
             }
-        }
-        catch (TransportExceptionInterface|\RuntimeException $e) {
+        } catch (TransportExceptionInterface | \RuntimeException $e) {
             $developerMessage = $e->getMessage();
             $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_GENERAL);
-        } 
+        }
 
         $contents = $this->renderView('product_in_store/product_edit.html.twig', [
             'form' => $form->createView(),
             'developerMessage' => $developerMessage,
             'userMessage' => $userMessage,
-            'id' => $id
+            'id' => $id,
         ]);
+
         return new Response($contents);
     }
 
     public function product_delete(Request $request, int $id): RedirectResponse
     {
         try {
-            $response = $this->client->request( 'DELETE', 'http://'.ProductInStoreController::IP.'/products/'.$id);
+            $response = $this->client->request('DELETE', 'http://'.ProductInStoreController::IP.'/products/'.$id);
             $arrayDataFromAPI = $this->array_data_from_response($response);
-            
-            if ($response->getStatusCode() == 200) {
+
+            if (200 == $response->getStatusCode()) {
                 $this->addFlash('message', ProductInStoreController::API_200_PRODUCT_DELETE);
+
                 return $this->redirectToRoute('products_all');
-            }
-            else {
+            } else {
                 $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_FOR_DELETE);
+
                 return $this->redirectToRoute('product_edit', ['id' => $id]);
             }
-        }
-        catch (TransportExceptionInterface|\RuntimeException $e) {
+        } catch (TransportExceptionInterface | \RuntimeException $e) {
             $this->addFlash('message', ProductInStoreController::API_NOT_200_RESPONSE_FOR_DELETE);
+
             return $this->redirectToRoute('product_edit', ['id' => $id]);
-        } 
+        }
     }
 
     private function get_dev_info(?array $arrayDataFromAPI, ClientResponse $response): ?string
     {
-        $message = $arrayDataFromAPI['message'] ?? "--";
+        $message = $arrayDataFromAPI['message'] ?? '--';
         $code = $response->getStatusCode();
-        $devInfo = $arrayDataFromAPI['devInfo'] ?? "--";
+        $devInfo = $arrayDataFromAPI['devInfo'] ?? '--';
+
         return "message: $message, code: $code, devInfo: $devInfo";
     }
 
     private function array_data_from_response(ClientResponse $response): ?array
     {
         $jsonDataFromAPI = $response->getContent(false);
+
         return json_decode($jsonDataFromAPI, true);
     }
 
-    private function is_name_valid ($name) : bool
+    private function is_name_valid($name): bool
     {
-        if ($name === null || is_numeric($name) || strlen($name) > 50 or strlen($name) < 2 || (trim($name) == "") ) {
+        if (null === $name || is_numeric($name) || strlen($name) > 50 or strlen($name) < 2 || ('' == trim($name))) {
             return false;
-        }
-        else {
-            return true;
-        }
-    }
-    private function is_amount_valid($amount) : bool
-    {
-        if (!is_numeric($amount) || ($amount - floor($amount) != 0) || $amount < 0 ) {
-            return false;
-        }
-        else {
+        } else {
             return true;
         }
     }
 
-    private function get_data_for_slider(Request $request, int $total, int $elements, int $pageRange) : array
+    private function is_amount_valid($amount): bool
+    {
+        if (!is_numeric($amount) || (0 != $amount - floor($amount)) || $amount < 0) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    private function get_data_for_slider(Request $request, int $total, int $elements, int $pageRange): array
     {
         //Get Data for Slider template, based on https://github.com/KnpLabs/KnpPaginatorBundle/blob/master/src/Pagination/SlidingPagination.php:
-                // quantity of pages:
-                $pageCount = ceil ($total/$elements); 
-                $current = $request->query->getInt('page', 1);
+        // quantity of pages:
+        $pageCount = ceil($total / $elements);
+        $current = $request->query->getInt('page', 1);
 
-                //quantity of page links shown:
-                if ($pageRange > $pageCount) $pageRange = $pageCount;
+        //quantity of page links shown:
+        if ($pageRange > $pageCount) {
+            $pageRange = $pageCount;
+        }
 
-                //make range of pages ($pageRange + 2):
-                $delta = ceil( $pageRange / 2);
-                if ($current - $delta > $pageCount - $pageRange) {
-                    $pagesInRange = range($pageCount - $pageRange + 1, $pageCount);
-                } else {
-                    if ($current - $delta < 0) {
-                        $delta = $current;
-                    }
-                    $offset = $current - $delta;
-                    $pagesInRange = range($offset + 1, $offset + $pageRange);
-                }
-              
-                $first =  1;
-                $last = $pageCount;
-                $previous = ($current > 1) ? $current - 1 : null;
-                $next =  ($current < $pageCount) ? $current + 1 : null;
+        //make range of pages ($pageRange + 2):
+        $delta = ceil($pageRange / 2);
+        if ($current - $delta > $pageCount - $pageRange) {
+            $pagesInRange = range($pageCount - $pageRange + 1, $pageCount);
+        } else {
+            if ($current - $delta < 0) {
+                $delta = $current;
+            }
+            $offset = $current - $delta;
+            $pagesInRange = range($offset + 1, $offset + $pageRange);
+        }
 
-                $queryToLink = $request->query->all();
-                
-                return $viewData = ['pageCount' => $pageCount,
+        $first = 1;
+        $last = $pageCount;
+        $previous = ($current > 1) ? $current - 1 : null;
+        $next = ($current < $pageCount) ? $current + 1 : null;
+
+        $queryToLink = $request->query->all();
+
+        return $viewData = ['pageCount' => $pageCount,
                             'first' => $first,
                             'last' => $last,
                             'current' => $current,
@@ -327,6 +320,6 @@ class ProductInStoreController extends AbstractController
                             'next' => $next,
                             'pagesInRange' => $pagesInRange,
                             'elements' => $elements,
-                            'queryToLink' => $queryToLink];
+                            'queryToLink' => $queryToLink, ];
     }
 }
