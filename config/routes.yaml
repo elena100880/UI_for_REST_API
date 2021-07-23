@@ -1,18 +1,18 @@
 products_all:
     path: /products/all
-    controller: App\Controller\ProductInStoreController::products_all
+    controller: App\Controller\ProductInStoreController::getProducts
 
 product_add:
     path: /product/add
-    controller: App\Controller\ProductInStoreController::product_add
+    controller: App\Controller\ProductInStoreController::addProduct
 
 product_edit:
     path: /product/edit/{id<[1-9]\d*>}
-    controller: App\Controller\ProductInStoreController::product_edit
+    controller: App\Controller\ProductInStoreController::editProduct
 
 product_delete:
     path: /product/delete/{id<[1-9]\d*>}
-    controller: App\Controller\ProductInStoreController::product_delete
+    controller: App\Controller\ProductInStoreController::deleteProduct
     
 
 
